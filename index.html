@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Tenis</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; }
+        body { background: #f0f2f5; color: #333; padding: 15px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        h2, h3 { margin-bottom: 15px; color: #111; }
+        label { display: block; margin: 10px 0 5px; font-weight: bold; font-size: 14px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; margin-bottom: 10px; }
+        button { width: 100%; padding: 14px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+        .btn-danger { background: #dc3545; }
+        .hidden { display: none; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #f8f9fa; }
+        .notif { background: #fff3cd; border-left: 5px solid #ffc107; padding: 12px; margin-bottom: 10px; border-radius: 6px; }
+        .flex-btn { display: flex; gap: 10px; margin-top: 10px; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; }
+        .bg-admin { background: #0056b3 !important; color: white; }
+        .bg-vendedor { background: #28a745 !important; color: white; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: #e9ecef; padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-box span { display: block; font-size: 20px; font-weight: bold; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. LOGIN -->
+    <div id="section-login" class="card">
+        <h2>👟 Sistema de Tenis</h2>
+        <p style="color: #666; margin-bottom: 15px;">Ingresa tus credenciales desde tu celular</p>
+        <label>Usuario</label>
+        <input type="text" id="login-user" placeholder="Ej: admin">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="••••">
+        <button onclick="login()">Ingresar</button>
+        <p id="login-error" style="color:red; margin-top:10px; font-weight:bold;"></p>
+    </div>
+
+    <!-- 2. PANEL ADMINISTRADOR -->
+    <div id="section-admin" class="hidden">
+        <div class="card bg-admin">
+            <h2>Panel Administrator</h2>
+            <p>Hola, <span id="admin-nombre-txt"></span></p>
+            <button class="btn-danger" style="margin-top:10px; padding:8px;" onclick="logout()">Cerrar Sesión</button>
+        </div>
+
+        <div class="card">
+            <h3>📦 Registrar Nuevo Pedido</h3>
+            <label>Número de Pedido</label>
+            <input type="text" id="p-numero" placeholder="Ej: PED-2026">
+            <label>Fecha de Pedido</label>
+            <input type="date" id="p-fecha">
+            <label>Modelo de Tenis</label>
+            <input type="text" id="p-modelo" placeholder="Ej: Nike Air Max">
+            <label>Cantidad de Cajas</label>
+            <input type="number" id="p-cajas" placeholder="0">
+            <label>Piezas por Caja</label>
+            <input type="number" id="p-piezas-caja" placeholder="0">
+            <button onclick="registrarPedido()">Dar de Alta Inventario</button>
+        </div>
+
+        <div class="card">
+            <h3>👤 Crear Nuevo Usuario</h3>
+            <label>Nombre de Usuario</label>
+            <input type="text" id="u-nombre" placeholder="Ej: juan_ventas">
+            <label>Contraseña</label>
+            <input type="password" id="u-pass" placeholder="••••">
+            <label>Rol del Perfil</label>
+            <select id="u-rol">
+                <option value="vendedor">Vendedor</option>
+                <option value="administrador">Administrador</option>
+            </select>
+            <button onclick="crearUsuario()">Guardar Perfil</button>
+        </div>
+
+        <div class="card">
+            <h3>🚚 Asignar Mercancía a Vendedor</h3>
+            <label>Seleccionar Lote/Pedido</label>
+            <select id="trans-pedido"></select>
+            <label>Seleccionar Destinatario</label>
+            <select id="trans-destino"></select>
+            <label>Cantidad de Piezas a Transferir</label>
+            <input type="number" id="trans-cantidad" placeholder="0">
+            <button onclick="enviarMercanciaAdmin()">Enviar Solicitud de Transferencia</button>
+        </div>
+
+        <div class="card">
+            <h3>📊 Inventario General de Pedidos</h3>
+            <div style="overflow-x: auto;">
+                <table id="tabla-inventario-general">
+                    <thead>
+                        <tr>
+                            <th>Pedido</th>
+                            <th>Modelo</th>
+                            <th>Iniciales</th>
+                            <th>Disponibles</th>
+                            <th>Vendidas</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 3. PANEL VENDEDOR -->
+    <div id="section-vendedor" class="hidden">
+        <div class="card bg-vendedor">
+            <h2>Panel Vendedor</h2>
+            <p>Hola, <span id="vend-nombre-txt"></span></p>
+            <button class="btn-danger" style="margin-top:10px; padding:8px;" onclick="logout()">Cerrar Sesión</button>
+        </div>
+
+        <div class="card">
+            <h3>💰 Reporte Financiero</h3>
+            <div class="stats-grid">
+                <div class="stat-box">Mi Venta Total<span id="stat-personal">$0.00</span></div>
+                <div class="stat-box">Venta Global (Todos)<span id="stat-global">$0.00</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🔔 Notificaciones Pendientes</h3>
+            <div id="contenedor-notificaciones">No tienes transferencias por autorizar.</div>
+        </div>
+
+        <div class="card">
+            <h3>💵 Registrar Venta (Consumir Stock)</h3>
+            <label>Selecciona tu Stock disponible</label>
+            <select id="venta-lote"></select>
+            <label>Cantidad de piezas vendidas</label>
+            <input type="number" id="venta-cantidad" placeholder="0">
+            <label>Precio cobrado por pieza</label>
+            <input type="number" id="venta-precio" placeholder="Ej: 700">
+            <button onclick="registrarVenta()">Guardar Venta e Ingreso</button>
+        </div>
+    </div>
+
+    <script>
+        let usuarioLogueado = null;
+        let listaPedidosCache = [];
+
+        async function login() {
+            const nombre = document.getElementById('login-user').value;
+            const password = document.getElementById('login-pass').value;
+            
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nombre, password })
+            });
+            const data = await res.json();
+            
+            if(data.login) {
+                usuarioLogueado = data.usuario;
+                document.getElementById('section-login').classList.add('hidden');
+                
+                if(usuarioLogueado.rol === 'administrador') {
+                    document.getElementById('section-admin').classList.remove('hidden');
+                    document.getElementById('admin-nombre-txt').innerText = usuarioLogueado.nombre;
+                    cargarDatosAdmin();
+                } else {
+                    document.getElementById('section-vendedor').classList.remove('hidden');
+                    document.getElementById('vend-nombre-txt').innerText = usuarioLogueado.nombre;
+                    cargarDatosVendedor();
+                }
+            } else {
+                document.getElementById('login-error').innerText = data.mensaje;
+            }
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+
+        async function cargarDatosAdmin() {
+            const resP = await fetch('/api/pedidos');
+            listaPedidosCache = await resP.json();
+            
+            const selectP = document.getElementById('trans-pedido');
+            selectP.innerHTML = '';
+            const tbody = document.querySelector('#tabla-inventario-general tbody');
+            tbody.innerHTML = '';
+
+            listaPedidosCache.forEach(p => {
+                selectP.innerHTML += `<option value="${p.id}">${p.numero_pedido} - ${p.modelo}</option>`;
+                tbody.innerHTML += `<tr>
+                    <td>${p.numero_pedido}</td>
+                    <td>${p.modelo}</td>
+                    <td>${p.piezas_totales_iniciales}</td>
+                    <td>${p.piezas_actuales_disponibles}</td>
+                    <td>${p.vendidas_pedido}</td>
+                </tr>`;
+            });
+
+            const resU = await fetch('/api/usuarios');
+            const usuarios = await resU.json();
+            const selectU = document.getElementById('trans-destino');
+            selectU.innerHTML = '';
+            usuarios.forEach(u => {
+                if(u.id !== usuarioLogueado.id) {
+                    selectU.innerHTML += `<option value="${u.id}">${u.nombre} (${u.rol})</option>`;
+                }
+            });
+        }
+
+        async function registrarPedido() {
+            const numero_pedido = document.getElementById('p-numero').value;
+            const fecha_pedido = document.getElementById('p-fecha').value;
+            const modelo = document.getElementById('p-modelo').value;
+            const cajas = document.getElementById('p-cajas').value;
+            const piezas_caja = document.getElementById('p-piezas-caja').value;
+
+            await fetch('/api/pedidos', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ numero_pedido, fecha_pedido, modelo, cajas, piezas_caja })
+            });
+            alert('¡Lote de inventario registrado con éxito!');
+            cargarDatosAdmin();
+        }
+
+        async function crearUsuario() {
+            const nombre = document.getElementById('u-nombre').value;
+            const password = document.getElementById('u-pass').value;
+            const rol = document.getElementById('u-rol').value;
+
+            await fetch('/api/usuarios', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nombre, password, rol })
+            });
+            alert('Usuario creado correctamente');
+            cargarDatosAdmin();
+        }
+
+        async function enviarMercanciaAdmin() {
+            const pedidoId = document.getElementById('trans-pedido').value;
+            const destinoId = document.getElementById('trans-destino').value;
+            const cantidad = document.getElementById('trans-cantidad').value;
+            const pedidoSel = listaPedidosCache.find(x => x.id == pedidoId);
+
+            await fetch('/api/transferencias', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    remitente_id: usuarioLogueado.id,
+                    destinatario_id: destinoId,
+                    tipo: 'mercancia',
+                    pedido_id: pedidoId,
+                    modelo: pedidoSel.modelo,
+                    cantidad: cantidad
+                })
+            });
+            alert('Solicitud enviada. El vendedor deberá autorizarla desde su cel.');
+            cargarDatosAdmin();
+        }
+
+        async function cargarDatosVendedor() {
+            const resR = await fetch(`/api/reporte-ventas/${usuarioLogueado.id}`);
+            const dataR = await resR.json();
+            document.getElementById('stat-personal').innerText = `$${parseFloat(dataR.personal).toLocaleString()}`;
+            document.getElementById('stat-global').innerText = `$${parseFloat(dataR.global).toLocaleString()}`;
+
+            const resN = await fetch(`/api/transferencias/${usuarioLogueado.id}`);
+            const notifs = await resN.json();
+            const container = document.getElementById('contenedor-notificaciones');
+            container.innerHTML = notifs.length === 0 ? 'No tienes transferencias por autorizar.' : '';
+            
+            notifs.forEach(n => {
+                container.innerHTML += `
+                    <div class="notif">
+                        <p><strong>De:</strong> ${n.nombre_remitente}</p>
+                        <p><strong>Envío:</strong> ${n.cantidad_mercancia} piezas del modelo <b>${n.modelo}</b></p>
+                        <div class="flex-btn">
+                            <button style="padding:6px; background:#28a745;" onclick="responderNotif(${n.id}, 'autorizado')">Autorizar</button>
+                            <button style="padding:6px; background:#dc3545;" onclick="responderNotif(${n.id}, 'rechazado')">Rechazar</button>
+                        </div>
+                    </div>`;
+            });
+
+            const resS = await fetch(`/api/inventario-vendedor/${usuarioLogueado.id}`);
+            const stock = await resS.json();
+            const selectV = document.getElementById('venta-lote');
+            selectV.innerHTML = '';
+            stock.forEach(s => {
+                if(s.piezas_vendedor > 0) {
+                    selectV.innerHTML += `<option value="${s.pedido_id}|${s.modelo}">${s.numero_pedido} - ${s.modelo} (${s.piezas_vendedor} pz disp.)</option>`;
+                }
+            });
+        }
+
+        async function responderNotif(id, accion) {
+            await fetch('/api/transferencias/procesar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ transferencia_id: id, accion })
+            });
+            alert(`Transferencia ${accion}`);
+            cargarDatosVendedor();
+        }
+
+        async function registrarVenta() {
+            const loteRaw = document.getElementById('venta-lote').value;
+            if(!loteRaw) return alert('No tienes stock disponible para vender.');
+            
+            const [pedidoId, modelo] = loteRaw.split('|');
+            const cantidad = document.getElementById('venta-cantidad').value;
+            const precio = document.getElementById('venta-precio').value;
+
+            const res = await fetch('/api/ventas', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    usuario_id: usuarioLogueado.id,
+                    pedido_id: pedidoId,
+                    modelo: modelo,
+                    cantidad: cantidad,
+                    precio: precio
+                })
+            });
+            
+            if(res.ok) {
+                alert('¡Venta guardada con éxito y stock descontado!');
+                cargarDatosVendedor();
+            } else {
+                const err = await res.json();
+                alert(err.error);
+            }
+        }
+    </script>
+</body>
+</html>
