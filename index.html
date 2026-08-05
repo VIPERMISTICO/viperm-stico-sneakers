@@ -180,14 +180,20 @@
             const data = await res.json();
             
             if(data.login) {
-                usuarioLogueado = data.usuario[0]; // Corrección para leer el arreglo del usuario
+                // Validación de seguridad para asegurar que lea los datos correctamente
+                if (Array.isArray(data.usuario)) {
+                    usuarioLogueado = data.usuario[0];
+                } else {
+                    usuarioLogueado = data.usuario;
+                }
+                
                 document.getElementById('section-login').classList.add('hidden');
                 
-                if(usuarioLogueado.rol === 'administrador') {
+                if(usuarioLogueado && usuarioLogueado.rol === 'administrador') {
                     document.getElementById('section-admin').classList.remove('hidden');
                     document.getElementById('admin-nombre-txt').innerText = usuarioLogueado.nombre;
                     cargarDatosAdmin();
-                } else {
+                } else if (usuarioLogueado) {
                     document.getElementById('section-vendedor').classList.remove('hidden');
                     document.getElementById('vend-nombre-txt').innerText = usuarioLogueado.nombre;
                     cargarDatosVendedor();
@@ -196,6 +202,7 @@
                 document.getElementById('login-error').innerText = data.mensaje;
             }
         }
+
 
         function logout() {
             location.reload();
