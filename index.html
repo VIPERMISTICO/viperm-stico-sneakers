@@ -20,8 +20,8 @@
         .btn-secondary { background: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); margin-top: 5px; }
         .btn-secondary:hover { box-shadow: 0 6px 15px rgba(16, 185, 129, 0.3); }
         .hidden { display: none; }
-        table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 14px; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #edf2f7; }
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #edf2f7; }
         th { background: #f7fafc; font-weight: 600; color: #4a5568; }
         .notif { background: #fffaf0; border-left: 5px solid #dd6b20; padding: 16px; margin-bottom: 12px; border-radius: 12px; }
         .flex-btn { display: flex; gap: 10px; margin-top: 12px; }
@@ -32,7 +32,7 @@
         .stat-box { background: #f8fafc; padding: 16px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; }
         .stat-box span { display: block; font-size: 22px; font-weight: 700; margin-top: 6px; color: #1e1b4b; }
         .box-pedido-activo { border: 2px dashed #4f46e5; background: #f5f3ff; padding: 14px; border-radius: 12px; margin-top: 10px; text-align: center; font-weight: bold; color: #4f46e5; }
-        .badge-money { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-weight: 600; font-size: 12px; }
+        .badge-money { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -53,10 +53,16 @@
 
     <!-- 2. PANEL ADMINISTRADOR -->
     <div id="section-admin" class="hidden">
-        <div class="bg-header-panel">
+        <div class="card bg-header-panel">
             <h2>Panel Administrador</h2>
             <p>Sesión activa: <b id="admin-nombre-txt"></b></p>
             <button class="btn-danger" style="margin-top:14px; padding:10px; font-size:14px; width:auto;" onclick="logout()">Salir del Sistema</button>
+        </div>
+
+        <!-- NUEVA: Bandeja de Notificaciones para el Administrador (Recibir Dinero) -->
+        <div class="card" style="border: 2px solid #3b82f6; background: #eff6ff;">
+            <h3>🔔 Bandeja de Aprobaciones (Admin)</h3>
+            <div id="admin-contenedor-notificaciones" style="color: #1e40af; font-style: italic;">No tienes reportes de dinero pendientes de liquidar.</div>
         </div>
 
         <!-- Catálogo de Modelos Únicos -->
@@ -162,16 +168,16 @@
             </div>
         </div>
 
-        <!-- NUEVA TABLA: Historial de Stock y Control Financiero Desglosado por Pedido -->
+        <!-- TABLA CONTABLE: Historial del Vendedor con Piezas/Efectivo Enviados y Recibidos -->
         <div class="card">
-            <h3>📈 Mi Historial Financiero y Lotes Asignados</h3>
+            <h3>📈 Mi Historial de Lotes y Control Financiero</h3>
             <div style="overflow-x: auto;">
                 <table id="tabla-inventario-vendedor">
                     <thead>
                         <tr>
                             <th>Pedido</th>
                             <th>Modelo</th>
-                            <th>Recibido</th>
+                            <th>Recibido (Total)</th>
                             <th>Queda (Disp.)</th>
                             <th>Total Vendido</th>
                             <th>Por Transferir</th>
@@ -189,7 +195,7 @@
             <div id="contenedor-notificaciones" style="color: #718096; font-style: italic;">No hay solicitudes por autorizar.</div>
         </div>
 
-        <!-- Registrar Ventas (Consumo de Piezas) -->
+        <!-- Registrar Ventas -->
         <div class="card">
             <h3>🛍️ Registrar Venta (Consumir Mi Stock)</h3>
             <label>Selecciona del Lote Asignado</label>
@@ -201,7 +207,7 @@
             <button style="background: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);" onclick="registrarVenta()">Procesar Venta y Cobro</button>
         </div>
 
-        <!-- NUEVO FORMULARIO: Transferencias del Vendedor (Mercancía a colegas o Dinero al Admin) -->
+        <!-- Formulario de Transferencias del Vendedor -->
         <div class="card">
             <h3>🔄 Enviar Dinero o Mercancía (Salidas)</h3>
             <label>¿Qué deseas transferir?</label>
@@ -250,7 +256,7 @@
             const data = await res.json();
             
             if(data.login) {
-                usuarioLogueado = data.usuario;
+                usuarioLogueado = Array.isArray(data.usuario) ? data.usuario : data.usuario;
                 document.getElementById('section-login').classList.add('hidden');
                 
                 if(usuarioLogueado && usuarioLogueado.rol === 'administrador') {
@@ -358,6 +364,7 @@
 
 
 
+        // --- CARGAR DATOS DEL ADMINISTRADOR ---
         async function cargarDatosAdmin() {
             const resP = await fetch('/api/pedidos/general');
             listaPedidosCache = await resP.json();
@@ -389,6 +396,25 @@
 
             mostrarStockDisponibleAdmin();
 
+            // Cargar solicitudes de dinero entrantes para el Administrador
+            const resN = await fetch(`/api/transferencias/${usuarioLogueado.id}`);
+            const notifs = await resN.json();
+            const containerA = document.getElementById('admin-contenedor-notificaciones');
+            containerA.innerHTML = notifs.length === 0 ? 'No tienes reportes de dinero pendientes de liquidar.' : '';
+            
+            notifs.forEach(n => {
+                containerA.innerHTML += `
+                    <div class="notif" style="background:#f0fdf4; border-left-color:#16a34a; color:#14532d;">
+                        <p><strong>De Vendedor:</strong> ${n.nombre_remitente}</p>
+                        <p><strong>Lote Origen:</strong> Pedido ${n.numero_pedido || 'General'} - <b>${n.modelo || 'Efectivo'}</b></p>
+                        <p><strong>Monto Recibido:</strong> <b>$${parseFloat(n.monto_dinero).toLocaleString()}</b></p>
+                        <div class="flex-btn">
+                            <button style="padding:6px 12px; background:#16a34a; font-size:13px;" onclick="responderNotifAdmin(${n.id}, 'autorizado')">Confirmar Depósito</button>
+                            <button style="padding:6px 12px; background:#dc2626; font-size:13px;" onclick="responderNotifAdmin(${n.id}, 'rechazado')">Rechazar</button>
+                        </div>
+                    </div>`;
+            });
+
             const resU = await fetch('/api/usuarios');
             usuariosSistemaCache = await resU.json();
             const selectU = document.getElementById('trans-destino');
@@ -398,6 +424,16 @@
                     selectU.innerHTML += `<option value="${u.id}">${u.nombre} (${u.rol})</option>`;
                 }
             });
+        }
+
+        async function responderNotifAdmin(id, accion) {
+            await fetch('/api/transferencias/procesar', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ transferencia_id: id, accion })
+            });
+            alert(`Reporte de fondos marcado como: ${accion}`);
+            cargarDatosAdmin();
         }
 
         function mostrarStockDisponibleAdmin() {
@@ -505,12 +541,13 @@
             selectTransLote.innerHTML = '';
             
             stock.forEach(s => {
+                let totalRecibidoReal = parseInt(s.piezas_recibidas_totales) + parseInt(s.mercancia_recibida_colegas);
                 let porTransferir = parseFloat(s.total_vendido) - parseFloat(s.total_transferido);
                 
                 tbodyV.innerHTML += `<tr>
                     <td>${s.numero_pedido}</td>
                     <td>${s.modelo}</td>
-                    <td><b>${s.piezas_recibidas_totales} pz</b></td>
+                    <td><b>${totalRecibidoReal} pz</b></td>
                     <td>${s.piezas_vendedor} pz</td>
                     <td><span class="badge-money">$${parseFloat(s.total_vendido).toLocaleString()}</span></td>
                     <td style="color:#dd6b20; font-weight:bold;">$${porTransferir.toLocaleString()}</td>
