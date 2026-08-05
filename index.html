@@ -12,6 +12,7 @@
         label { display: block; margin: 12px 0 6px; font-weight: 600; font-size: 13px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; }
         input, select { width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 16px; margin-bottom: 12px; outline: none; transition: all 0.2s; background: #f8fafc; }
         input:focus, select:focus { border-color: #4f46e5; background: white; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
+        input:disabled { background: #e2e8f0; color: #4a5568; cursor: not-allowed; font-weight: bold; }
         button { width: 100%; padding: 14px; background: #4f46e5; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
         button:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(79, 70, 229, 0.3); }
         .btn-danger { background: #ef4444; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
@@ -22,9 +23,9 @@
         table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 14px; border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #edf2f7; }
         th { background: #f7fafc; font-weight: 600; color: #4a5568; }
-        .notif { background: #fffaf0; border-left: 5px solid #dd6b20; padding: 16px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.01); }
+        .notif { background: #fffaf0; border-left: 5px solid #dd6b20; padding: 16px; margin-bottom: 12px; border-radius: 12px; }
         .flex-btn { display: flex; gap: 10px; margin-top: 12px; }
-        .bg-header-panel { background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: white; position: relative; overflow: hidden; }
+        .bg-header-panel { background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: white; position: relative; border-radius: 16px; padding: 22px; margin-bottom: 20px;}
         .bg-header-panel h2 { color: white; }
         .bg-header-panel p { color: #e0e7ff; font-size: 15px; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
@@ -47,12 +48,22 @@
         <p id="login-error" style="color:#ef4444; margin-top:14px; font-weight:600; text-align: center;"></p>
     </div>
 
+
+
     <!-- 2. PANEL ADMINISTRADOR -->
     <div id="section-admin" class="hidden">
-        <div class="card bg-header-panel">
+        <div class="bg-header-panel">
             <h2>Panel Administrador</h2>
             <p>Sesión activa: <b id="admin-nombre-txt"></b></p>
             <button class="btn-danger" style="margin-top:14px; padding:10px; font-size:14px; width:auto;" onclick="logout()">Salir del Sistema</button>
+        </div>
+
+        <!-- Catálogo de Modelos Únicos -->
+        <div class="card">
+            <h3>👟 Catálogo de Modelos</h3>
+            <label>Registrar Nombre de Modelo Único</label>
+            <input type="text" id="cat-modelo-nombre" placeholder="Ej: Nike Air Max 90">
+            <button onclick="registrarModeloCatalogo()">Guardar en Catálogo</button>
         </div>
 
         <!-- Altas de Pedidos (Encabezado y Detalle) -->
@@ -67,10 +78,12 @@
             
             <div id="form-detalle" class="hidden">
                 <div class="box-pedido-activo">Pedido Activo: <span id="lbl-pedido-activo"></span></div>
-                <label>Paso 2: Agregar Modelos a este pedido</label>
-                <input type="text" id="p-modelo" placeholder="Modelo de Tenis (Ej: Jordan Retro 1)">
-                <input type="number" id="p-cajas" placeholder="Cantidad de Cajas">
-                <input type="number" id="p-piezas-caja" placeholder="Tenis por Caja">
+                <label>Paso 2: Seleccionar Modelo del Catálogo</label>
+                <select id="p-modelo-select"></select>
+                <label>Cantidad de Cajas</label>
+                <input type="number" id="p-cajas" placeholder="0">
+                <label>Tenis por Caja</label>
+                <input type="number" id="p-piezas-caja" placeholder="0">
                 <button onclick="registrarDetalle()">Añadir Modelo al Pedido</button>
                 <button class="btn-secondary" onclick="finalizarPedido()">Cerrar / Otro Pedido</button>
             </div>
@@ -93,11 +106,15 @@
             <button onclick="crearUsuario()">Dar de Alta Perfil</button>
         </div>
 
-        <!-- Enviar Mercancía a Vendedor -->
+        <!-- Enviar Mercancía a Vendedor con Ayuda Visual -->
         <div class="card">
             <h3>🚚 Asignar Mercancía de Pedido</h3>
             <label>Seleccionar Lote y Modelo</label>
-            <select id="trans-pedido"></select>
+            <select id="trans-pedido" onchange="mostrarStockDisponibleAdmin()"></select>
+            
+            <label>Piezas Disponibles en Almacén (Ayuda Visual)</label>
+            <input type="text" id="trans-stock-visual" disabled value="Selecciona un lote...">
+            
             <label>Seleccionar Vendedor</label>
             <select id="trans-destino"></select>
             <label>Cantidad de Piezas a Enviar</label>
@@ -127,7 +144,7 @@
 
     <!-- 3. PANEL VENDEDOR -->
     <div id="section-vendedor" class="hidden">
-        <div class="card bg-header-panel" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+        <div class="bg-header-panel" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
             <h2>Panel Vendedor</h2>
             <p>Vendedor activo: <b id="vend-nombre-txt"></b></p>
             <button class="btn-danger" style="margin-top:14px; padding:10px; font-size:14px; width:auto;" onclick="logout()">Salir del Sistema</button>
@@ -148,7 +165,7 @@
             <div id="contenedor-notificaciones" style="color: #718096; font-style: italic;">No hay solicitudes de mercancía por autorizar.</div>
         </div>
 
-        <!-- Registrar Ventas (Consumo de Piezas) -->
+        <!-- Registrar Ventas -->
         <div class="card">
             <h3>🛍️ Registrar Venta (Consumir Mi Stock)</h3>
             <label>Selecciona del Lote Asignado</label>
@@ -180,20 +197,14 @@
             const data = await res.json();
             
             if(data.login) {
-                // Validación de seguridad para asegurar que lea los datos correctamente
-                if (Array.isArray(data.usuario)) {
-                    usuarioLogueado = data.usuario[0];
-                } else {
-                    usuarioLogueado = data.usuario;
-                }
-                
+                usuarioLogueado = Array.isArray(data.usuario) ? data.usuario[0] : data.usuario;
                 document.getElementById('section-login').classList.add('hidden');
                 
                 if(usuarioLogueado && usuarioLogueado.rol === 'administrador') {
                     document.getElementById('section-admin').classList.remove('hidden');
                     document.getElementById('admin-nombre-txt').innerText = usuarioLogueado.nombre;
                     cargarDatosAdmin();
-                } else if (usuarioLogueado) {
+                } else if(usuarioLogueado) {
                     document.getElementById('section-vendedor').classList.remove('hidden');
                     document.getElementById('vend-nombre-txt').innerText = usuarioLogueado.nombre;
                     cargarDatosVendedor();
@@ -203,9 +214,37 @@
             }
         }
 
-
         function logout() {
             location.reload();
+        }
+
+        async function registrarModeloCatalogo() {
+            const nombre_modelo = document.getElementById('cat-modelo-nombre').value;
+            if(!nombre_modelo) return alert('Escribe el nombre del modelo.');
+
+            const res = await fetch('/api/modelos', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nombre_modelo })
+            });
+            if(res.ok) {
+                alert('¡Modelo añadido al catálogo con éxito!');
+                document.getElementById('cat-modelo-nombre').value = '';
+                cargarModelosEnSelect();
+            } else {
+                alert('Este modelo ya existe en el catálogo.');
+            }
+        }
+
+        async function cargarModelosEnSelect() {
+            const res = await fetch('/api/modelos');
+            const modelos = await res.json();
+            const selectM = document.getElementById('p-modelo-select');
+            if(!selectM) return;
+            selectM.innerHTML = '';
+            modelos.forEach(m => {
+                selectM.innerHTML += `<option value="${m.id}">${m.nombre_modelo}</option>`;
+            });
         }
 
         async function fijarEncabezado() {
@@ -222,10 +261,11 @@
             const data = await res.json();
             
             if(res.ok) {
-                pedidoActivoId = data.pedido_id;
+                pedidoActivoId = data.pedido_id || data.insertId;
                 document.getElementById('lbl-pedido-activo').innerText = numero_pedido;
                 document.getElementById('form-encabezado').classList.add('hidden');
                 document.getElementById('form-detalle').classList.remove('hidden');
+                cargarModelosEnSelect();
                 cargarDatosAdmin();
             } else {
                 alert('Error al procesar el encabezado del pedido.');
@@ -233,27 +273,25 @@
         }
 
         async function registrarDetalle() {
-            const modelo = document.getElementById('p-modelo').value;
+            const modelo_id = document.getElementById('p-modelo-select').value;
             const cajas = document.getElementById('p-cajas').value;
             const piezas_caja = document.getElementById('p-piezas-caja').value;
 
-            if(!modelo || !cajas || !piezas_caja) return alert('Llena todos los campos del modelo.');
+            if(!modelo_id || !cajas || !piezas_caja) return alert('Llena todos los campos del modelo.');
 
             const res = await fetch('/api/pedidos/detalle', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ pedido_id: pedidoActivoId, modelo, cajas, piezas_caja })
+                body: JSON.stringify({ pedido_id: pedidoActivoId, modelo_id, cajas, piezas_caja })
             });
             
             if(res.ok) {
                 alert('¡Modelo añadido con éxito al pedido actual!');
-                document.getElementById('p-modelo').value = '';
                 document.getElementById('p-cajas').value = '';
                 document.getElementById('p-piezas-caja').value = '';
                 cargarDatosAdmin();
             } else {
-                const err = await res.json();
-                alert(err.error);
+                alert('Este modelo ya está registrado en este pedido.');
             }
         }
 
@@ -278,7 +316,7 @@
 
             let ultimoPedido = "";
             listaPedidosCache.forEach(p => {
-                selectP.innerHTML += `<option value="${p.detalle_id}">${p.numero_pedido} - ${p.modelo}</option>`;
+                selectP.innerHTML += `<option value="${p.id || p.detalle_id}">${p.numero_pedido} - ${p.modelo}</option>`;
                 
                 let renglonEncabezado = "";
                 if(p.numero_pedido !== ultimoPedido) {
@@ -296,6 +334,8 @@
                 </tr>`;
             });
 
+            mostrarStockDisponibleAdmin();
+
             const resU = await fetch('/api/usuarios');
             const usuarios = await resU.json();
             const selectU = document.getElementById('trans-destino');
@@ -305,6 +345,19 @@
                     selectU.innerHTML += `<option value="${u.id}">${u.nombre} (${u.rol})</option>`;
                 }
             });
+        }
+
+        function mostrarStockDisponibleAdmin() {
+            const detId = document.getElementById('trans-pedido').value;
+            const inputVisual = document.getElementById('trans-stock-visual');
+            if(!detId || listaPedidosCache.length === 0) {
+                inputVisual.value = "0 piezas";
+                return;
+            }
+            const item = listaPedidosCache.find(x => (x.id == detId || x.detalle_id == detId));
+            if(item) {
+                inputVisual.value = `${item.piezas_actuales_disponibles} piezas disponibles`;
+            }
         }
 
         async function crearUsuario() {
@@ -326,26 +379,32 @@
         }
 
         async function enviarMercanciaAdmin() {
-            const detalleId = document.getElementById('trans-pedido').value;
+            const detId = document.getElementById('trans-pedido').value;
             const destinoId = document.getElementById('trans-destino').value;
             const cantidad = document.getElementById('trans-cantidad').value;
 
-            if(!detalleId || !cantidad) return alert('Elige mercancía y pon cantidad.');
+            if(!detId || !cantidad) return alert('Elige mercancía y pon cantidad.');
 
-            await fetch('/api/transferencias', {
+            const res = await fetch('/api/transferencias', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     remitente_id: usuarioLogueado.id,
                     destinatario_id: destinoId,
                     tipo: 'mercancia',
-                    detalle_id: detalleId,
+                    detalle_id: detId,
                     cantidad: cantidad
                 })
             });
-            alert('Solicitud de mercancía enviada al vendedor.');
-            document.getElementById('trans-cantidad').value = '';
-            cargarDatosAdmin();
+            
+            if(res.ok) {
+                alert('¡Unidades reservadas! Solicitud enviada al vendedor.');
+                document.getElementById('trans-cantidad').value = '';
+                cargarDatosAdmin();
+            } else {
+                const err = await res.json();
+                alert(err.error || 'Error al reservar stock.');
+            }
         }
 
         async function cargarDatosVendedor() {
@@ -362,7 +421,7 @@
             notifs.forEach(n => {
                 container.innerHTML += `
                     <div class="notif">
-                        <p><strong>Remitente:</strong> Admin / Remitente</p>
+                        <p><strong>Remitente:</strong> Admin / Distribuidor</p>
                         <p><strong>Envío:</strong> ${n.cantidad_mercancia} piezas de <b>${n.modelo}</b></p>
                         <div class="flex-btn">
                             <button style="padding:8px; background:#10b981; font-size:14px;" onclick="responderNotif(${n.id}, 'autorizado')">Autorizar Ingreso</button>
@@ -377,7 +436,7 @@
             selectV.innerHTML = '';
             stock.forEach(s => {
                 if(s.piezas_vendedor > 0) {
-                    selectV.innerHTML += `<option value="${s.detalle_id}">${s.numero_pedido} - ${s.modelo} (${s.piezas_vendedor} pz disp.)</option>`;
+                    selectV.innerHTML += `<option value="${s.id || s.detalle_id}">${s.numero_pedido} - ${s.modelo} (${s.piezas_vendedor} pz disp.)</option>`;
                 }
             });
         }
@@ -388,30 +447,30 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ transferencia_id: id, accion })
             });
-            alert(`Transferencia marcada como: ${accion}`);
+            alert(`Transferencia procesada como: ${accion}`);
             cargarDatosVendedor();
         }
 
         async function registrarVenta() {
-            const detalleId = document.getElementById('venta-lote').value;
+            const detId = document.getElementById('venta-lote').value;
             const cantidad = document.getElementById('venta-cantidad').value;
             const precio = document.getElementById('venta-precio').value;
 
-            if(!detalleId || !cantidad || !precio) return alert('Por favor llena los datos de venta.');
+            if(!detId || !cantidad || !precio) return alert('Por favor llena los datos de venta.');
 
             const res = await fetch('/api/ventas', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     usuario_id: usuarioLogueado.id,
-                    detalle_id: detalleId,
+                    detalle_id: detId,
                     cantidad: cantidad,
                     precio: precio
                 })
             });
             
             if(res.ok) {
-                alert('¡Venta registrada! Stock actualizado y dinero guardado.');
+                alert('¡Venta registrada! Stock descontado de tu perfil.');
                 document.getElementById('venta-cantidad').value = '';
                 document.getElementById('venta-precio').value = '';
                 cargarDatosVendedor();
