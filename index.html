@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Tenis Pro</title>
+    <title>Control Tenis Finanzas Pro</title>
     <style>
         * { box-sizing: border-box; font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
         body { background: #f4f7f6; color: #2d3748; padding: 16px; }
@@ -25,13 +25,14 @@
         th { background: #f7fafc; font-weight: 600; color: #4a5568; }
         .notif { background: #fffaf0; border-left: 5px solid #dd6b20; padding: 16px; margin-bottom: 12px; border-radius: 12px; }
         .flex-btn { display: flex; gap: 10px; margin-top: 12px; }
-        .bg-header-panel { background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: white; position: relative; border-radius: 16px; padding: 22px; margin-bottom: 20px;}
+        .bg-header-panel { background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: white; border-radius: 16px; padding: 22px; margin-bottom: 20px;}
         .bg-header-panel h2 { color: white; }
         .bg-header-panel p { color: #e0e7ff; font-size: 15px; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
         .stat-box { background: #f8fafc; padding: 16px; border-radius: 12px; text-align: center; border: 1px solid #e2e8f0; }
         .stat-box span { display: block; font-size: 22px; font-weight: 700; margin-top: 6px; color: #1e1b4b; }
         .box-pedido-activo { border: 2px dashed #4f46e5; background: #f5f3ff; padding: 14px; border-radius: 12px; margin-top: 10px; text-align: center; font-weight: bold; color: #4f46e5; }
+        .badge-money { background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 6px; font-weight: 600; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -108,7 +109,7 @@
 
         <!-- Enviar Mercancía a Vendedor -->
         <div class="card">
-            <h3>🚚 Asignar Mercancía de Pedido</h3>
+            <h3>🚚 Asignar Mercancía de Pedido (Almacén)</h3>
             <label>Seleccionar Lote y Modelo</label>
             <select id="trans-pedido" onchange="mostrarStockDisponibleAdmin()"></select>
             
@@ -124,7 +125,7 @@
 
         <!-- Ver Inventario General -->
         <div class="card">
-            <h3>📊 Inventario General (Encabezado y Detalle)</h3>
+            <h3>📊 Inventario General (Almacén Central)</h3>
             <div style="overflow-x: auto;">
                 <table id="tabla-inventario-general">
                     <thead>
@@ -152,26 +153,29 @@
             <button class="btn-danger" style="margin-top:14px; padding:10px; font-size:14px; width:auto;" onclick="logout()">Salir del Sistema</button>
         </div>
 
-        <!-- Panel de Reporte de Dinero -->
+        <!-- Panel de Reporte de Dinero General -->
         <div class="card">
-            <h3>💵 Reporte de Ventas Financieras</h3>
+            <h3>💵 Balance Acumulado Histórico</h3>
             <div class="stats-grid">
                 <div class="stat-box" style="border-top: 4px solid #10b981;">Mi Venta Total<span id="stat-personal">$0.00</span></div>
                 <div class="stat-box" style="border-top: 4px solid #4f46e5;">Venta Global<span id="stat-global">$0.00</span></div>
             </div>
         </div>
 
-        <!-- NUEVA TABLA: Historial de Stock Detallado del Vendedor -->
+        <!-- NUEVA TABLA: Historial de Stock y Control Financiero Desglosado por Pedido -->
         <div class="card">
-            <h3>📈 Mi Historial de Lotes Asignados</h3>
+            <h3>📈 Mi Historial Financiero y Lotes Asignados</h3>
             <div style="overflow-x: auto;">
                 <table id="tabla-inventario-vendedor">
                     <thead>
                         <tr>
-                            <th>Lote / Pedido</th>
-                            <th>Modelo de Tenis</th>
+                            <th>Pedido</th>
+                            <th>Modelo</th>
                             <th>Recibido</th>
                             <th>Queda (Disp.)</th>
+                            <th>Total Vendido</th>
+                            <th>Por Transferir</th>
+                            <th>Ya Transferido</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -181,8 +185,8 @@
 
         <!-- Notificaciones de Transferencia -->
         <div class="card">
-            <h3>🔔 Bandeja de Notificaciones</h3>
-            <div id="contenedor-notificaciones" style="color: #718096; font-style: italic;">No hay solicitudes de mercancía por autorizar.</div>
+            <h3>🔔 Bandeja de Notificaciones (Entrantes)</h3>
+            <div id="contenedor-notificaciones" style="color: #718096; font-style: italic;">No hay solicitudes por autorizar.</div>
         </div>
 
         <!-- Registrar Ventas (Consumo de Piezas) -->
@@ -196,6 +200,34 @@
             <input type="number" id="venta-precio" placeholder="Ej: 700">
             <button style="background: #10b981; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);" onclick="registrarVenta()">Procesar Venta y Cobro</button>
         </div>
+
+        <!-- NUEVO FORMULARIO: Transferencias del Vendedor (Mercancía a colegas o Dinero al Admin) -->
+        <div class="card">
+            <h3>🔄 Enviar Dinero o Mercancía (Salidas)</h3>
+            <label>¿Qué deseas transferir?</label>
+            <select id="v-trans-tipo" onchange="alternarFormularioVendedor()">
+                <option value="mercancia">👟 Enviar Mercancía a un Compañero</option>
+                <option value="dinero">💰 Enviar Dinero al Administrador</option>
+            </select>
+
+            <label>Selecciona el Lote de Origen</label>
+            <select id="v-trans-lote"></select>
+
+            <label>Selecciona el Destinatario</label>
+            <select id="v-trans-destino"></select>
+
+            <div id="div-v-cantidad">
+                <label>Cantidad de Pares a Enviar</label>
+                <input type="number" id="v-trans-cantidad" placeholder="0">
+            </div>
+
+            <div id="div-v-monto" class="hidden">
+                <label>Monto de Dinero a Reportar ($)</label>
+                <input type="number" id="v-trans-monto" placeholder="Ej: 2100">
+            </div>
+
+            <button style="background: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);" onclick="enviarTransferenciaVendedor()">Efectuar Envío</button>
+        </div>
     </div>
 
 
@@ -204,6 +236,7 @@
         let usuarioLogueado = null;
         let listaPedidosCache = [];
         let pedidoActivoId = null;
+        let usuariosSistemaCache = [];
 
         async function login() {
             const nombre = document.getElementById('login-user').value;
@@ -217,8 +250,7 @@
             const data = await res.json();
             
             if(data.login) {
-                // Validación para tomar el objeto usuario correctamente de la lista
-                usuarioLogueado = Array.isArray(data.usuario) ? data.usuario[0] : data.usuario;
+                usuarioLogueado = data.usuario;
                 document.getElementById('section-login').classList.add('hidden');
                 
                 if(usuarioLogueado && usuarioLogueado.rol === 'administrador') {
@@ -358,10 +390,10 @@
             mostrarStockDisponibleAdmin();
 
             const resU = await fetch('/api/usuarios');
-            const usuarios = await resU.json();
+            usuariosSistemaCache = await resU.json();
             const selectU = document.getElementById('trans-destino');
             selectU.innerHTML = '';
-            usuarios.forEach(u => {
+            usuariosSistemaCache.forEach(u => {
                 if(u.id !== usuarioLogueado.id) {
                     selectU.innerHTML += `<option value="${u.id}">${u.nombre} (${u.rol})</option>`;
                 }
@@ -428,6 +460,9 @@
             }
         }
 
+
+
+        // --- VENDEDOR: LOGICA FINANCIERA AVANZADA ---
         async function cargarDatosVendedor() {
             const resR = await fetch(`/api/reporte-ventas/${usuarioLogueado.id}`);
             const dataR = await resR.json();
@@ -437,15 +472,20 @@
             const resN = await fetch(`/api/transferencias/${usuarioLogueado.id}`);
             const notifs = await resN.json();
             const container = document.getElementById('contenedor-notificaciones');
-            container.innerHTML = notifs.length === 0 ? 'No hay solicitudes de mercancía por autorizar.' : '';
+            container.innerHTML = notifs.length === 0 ? 'No hay solicitudes por autorizar.' : '';
             
             notifs.forEach(n => {
+                let mensajeEnvio = n.tipo_transferencia === 'mercancia' 
+                    ? `${n.cantidad_mercancia} piezas de <b>${n.modelo}</b>`
+                    : `Monto de dinero: <b>$${parseFloat(n.monto_dinero).toLocaleString()}</b>`;
+
                 container.innerHTML += `
                     <div class="notif">
-                        <p><strong>Remitente:</strong> Admin / Distribuidor</p>
-                        <p><strong>Envío:</strong> ${n.cantidad_mercancia} piezas de <b>${n.modelo}</b></p>
+                        <p><strong>Remitente:</strong> ${n.nombre_remitente}</p>
+                        <p><strong>Tipo:</strong> ${n.tipo_transferencia.toUpperCase()}</p>
+                        <p><strong>Detalle:</strong> ${mensajeEnvio}</p>
                         <div class="flex-btn">
-                            <button style="padding:8px; background:#10b981; font-size:14px;" onclick="responderNotif(${n.id}, 'autorizado')">Autorizar Ingreso</button>
+                            <button style="padding:8px; background:#10b981; font-size:14px;" onclick="responderNotif(${n.id}, 'autorizado')">Autorizar</button>
                             <button style="padding:8px; background:#ef4444; font-size:14px;" onclick="responderNotif(${n.id}, 'rechazado')">Rechazar</button>
                         </div>
                     </div>`;
@@ -453,24 +493,98 @@
 
             const resS = await fetch(`/api/inventario-vendedor/${usuarioLogueado.id}`);
             const stock = await resS.json();
+            listaPedidosCache = stock;
             
             const tbodyV = document.querySelector('#tabla-inventario-vendedor tbody');
             tbodyV.innerHTML = '';
-            const selectV = document.getElementById('venta-lote');
-            selectV.innerHTML = '';
+            
+            const selectVenta = document.getElementById('venta-lote');
+            selectVenta.innerHTML = '';
+            
+            const selectTransLote = document.getElementById('v-trans-lote');
+            selectTransLote.innerHTML = '';
             
             stock.forEach(s => {
+                let porTransferir = parseFloat(s.total_vendido) - parseFloat(s.total_transferido);
+                
                 tbodyV.innerHTML += `<tr>
                     <td>${s.numero_pedido}</td>
                     <td>${s.modelo}</td>
-                    <td>Recibido</td>
-                    <td><b>${s.piezas_vendedor} pz</b></td>
+                    <td><b>${s.piezas_recibidas_totales} pz</b></td>
+                    <td>${s.piezas_vendedor} pz</td>
+                    <td><span class="badge-money">$${parseFloat(s.total_vendido).toLocaleString()}</span></td>
+                    <td style="color:#dd6b20; font-weight:bold;">$${porTransferir.toLocaleString()}</td>
+                    <td style="color:#10b981; font-weight:bold;">$${parseFloat(s.total_transferido).toLocaleString()}</td>
                 </tr>`;
                 
                 if(s.piezas_vendedor > 0) {
-                    selectV.innerHTML += `<option value="${s.detalle_id}">${s.numero_pedido} - ${s.modelo} (${s.piezas_vendedor} pz disp.)</option>`;
+                    selectVenta.innerHTML += `<option value="${s.detalle_id}">${s.numero_pedido} - ${s.modelo}</option>`;
                 }
+                selectTransLote.innerHTML += `<option value="${s.detalle_id}">${s.numero_pedido} - ${s.modelo}</option>`;
             });
+
+            const resU = await fetch('/api/usuarios');
+            usuariosSistemaCache = await resU.json();
+            alternarFormularioVendedor();
+        }
+
+        function alternarFormularioVendedor() {
+            const tipo = document.getElementById('v-trans-tipo').value;
+            const selectDestino = document.getElementById('v-trans-destino');
+            selectDestino.innerHTML = '';
+
+            if (tipo === 'mercancia') {
+                document.getElementById('div-v-cantidad').classList.remove('hidden');
+                document.getElementById('div-v-monto').classList.add('hidden');
+                usuariosSistemaCache.forEach(u => {
+                    if (u.id !== usuarioLogueado.id && u.rol === 'vendedor') {
+                        selectDestino.innerHTML += `<option value="${u.id}">${u.nombre} (Vendedor)</option>`;
+                    }
+                });
+            } else {
+                document.getElementById('div-v-cantidad').classList.add('hidden');
+                document.getElementById('div-v-monto').classList.remove('hidden');
+                usuariosSistemaCache.forEach(u => {
+                    if (u.rol === 'administrador') {
+                        selectDestino.innerHTML += `<option value="${u.id}">${u.nombre} (Admin)</option>`;
+                    }
+                });
+            }
+        }
+
+        async function enviarTransferenciaVendedor() {
+            const tipo = document.getElementById('v-trans-tipo').value;
+            const detalleId = document.getElementById('v-trans-lote').value;
+            const destinoId = document.getElementById('v-trans-destino').value;
+            const cantidad = document.getElementById('v-trans-cantidad').value;
+            const monto = document.getElementById('v-trans-monto').value;
+
+            if(!destinoId) return alert('No hay un destinatario válido asignado.');
+
+            let cuerpo = {
+                remitente_id: usuarioLogueado.id,
+                destinatario_id: destinoId,
+                tipo: tipo,
+                detalle_id: detalleId,
+                cantidad: tipo === 'mercancia' ? cantidad : 0,
+                monto: tipo === 'dinero' ? monto : 0
+            };
+
+            const res = await fetch('/api/transferencias', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(cuerpo)
+            });
+
+            if (res.ok) {
+                alert('¡Envío efectuado! Queda pendiente en la bandeja del destinatario.');
+                document.getElementById('v-trans-cantidad').value = '';
+                document.getElementById('v-trans-monto').value = '';
+                cargarDatosVendedor();
+            } else {
+                const err = await res.json();
+                alert(err.error || 'Error al procesar transferencia.');
+            }
         }
 
         async function responderNotif(id, accion) {
@@ -479,7 +593,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ transferencia_id: id, accion })
             });
-            alert(`Transferencia procesada como: ${accion}`);
+            alert(`Acción guardada: ${accion}`);
             cargarDatosVendedor();
         }
 
@@ -502,7 +616,7 @@
             });
             
             if(res.ok) {
-                alert('¡Venta registrada! Stock descontado del modelo correcto.');
+                alert('¡Venta registrada! Balance de lote actualizado.');
                 document.getElementById('venta-cantidad').value = '';
                 document.getElementById('venta-precio').value = '';
                 cargarDatosVendedor();
