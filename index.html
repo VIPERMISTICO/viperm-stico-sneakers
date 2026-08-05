@@ -66,7 +66,7 @@
             <button onclick="registrarModeloCatalogo()">Guardar en Catálogo</button>
         </div>
 
-        <!-- Altas de Pedidos (Encabezado y Detalle) -->
+        <!-- Altas de Pedidos -->
         <div class="card">
             <h3>📦 Registrar Lote / Pedido</h3>
             <div id="form-encabezado">
@@ -106,7 +106,7 @@
             <button onclick="crearUsuario()">Dar de Alta Perfil</button>
         </div>
 
-        <!-- Enviar Mercancía a Vendedor con Ayuda Visual -->
+        <!-- Enviar Mercancía a Vendedor -->
         <div class="card">
             <h3>🚚 Asignar Mercancía de Pedido</h3>
             <label>Seleccionar Lote y Modelo</label>
@@ -142,9 +142,11 @@
         </div>
     </div>
 
+
+
     <!-- 3. PANEL VENDEDOR -->
     <div id="section-vendedor" class="hidden">
-        <div class="bg-header-panel" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+        <div class="card bg-header-panel" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
             <h2>Panel Vendedor</h2>
             <p>Vendedor activo: <b id="vend-nombre-txt"></b></p>
             <button class="btn-danger" style="margin-top:14px; padding:10px; font-size:14px; width:auto;" onclick="logout()">Salir del Sistema</button>
@@ -159,13 +161,31 @@
             </div>
         </div>
 
+        <!-- NUEVA TABLA: Historial de Stock Detallado del Vendedor -->
+        <div class="card">
+            <h3>📈 Mi Historial de Lotes Asignados</h3>
+            <div style="overflow-x: auto;">
+                <table id="tabla-inventario-vendedor">
+                    <thead>
+                        <tr>
+                            <th>Lote / Pedido</th>
+                            <th>Modelo de Tenis</th>
+                            <th>Recibido</th>
+                            <th>Queda (Disp.)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Notificaciones de Transferencia -->
         <div class="card">
             <h3>🔔 Bandeja de Notificaciones</h3>
             <div id="contenedor-notificaciones" style="color: #718096; font-style: italic;">No hay solicitudes de mercancía por autorizar.</div>
         </div>
 
-        <!-- Registrar Ventas -->
+        <!-- Registrar Ventas (Consumo de Piezas) -->
         <div class="card">
             <h3>🛍️ Registrar Venta (Consumir Mi Stock)</h3>
             <label>Selecciona del Lote Asignado</label>
@@ -197,6 +217,7 @@
             const data = await res.json();
             
             if(data.login) {
+                // Validación para tomar el objeto usuario correctamente de la lista
                 usuarioLogueado = Array.isArray(data.usuario) ? data.usuario[0] : data.usuario;
                 document.getElementById('section-login').classList.add('hidden');
                 
@@ -238,11 +259,11 @@
 
         async function cargarModelosEnSelect() {
             const res = await fetch('/api/modelos');
-            const modelos = await res.json();
+            const models = await res.json();
             const selectM = document.getElementById('p-modelo-select');
             if(!selectM) return;
             selectM.innerHTML = '';
-            modelos.forEach(m => {
+            models.forEach(m => {
                 selectM.innerHTML += `<option value="${m.id}">${m.nombre_modelo}</option>`;
             });
         }
@@ -316,7 +337,7 @@
 
             let ultimoPedido = "";
             listaPedidosCache.forEach(p => {
-                selectP.innerHTML += `<option value="${p.id || p.detalle_id}">${p.numero_pedido} - ${p.modelo}</option>`;
+                selectP.innerHTML += `<option value="${p.detalle_id}">${p.numero_pedido} - ${p.modelo}</option>`;
                 
                 let renglonEncabezado = "";
                 if(p.numero_pedido !== ultimoPedido) {
@@ -354,7 +375,7 @@
                 inputVisual.value = "0 piezas";
                 return;
             }
-            const item = listaPedidosCache.find(x => (x.id == detId || x.detalle_id == detId));
+            const item = listaPedidosCache.find(x => x.detalle_id == detId);
             if(item) {
                 inputVisual.value = `${item.piezas_actuales_disponibles} piezas disponibles`;
             }
@@ -432,11 +453,22 @@
 
             const resS = await fetch(`/api/inventario-vendedor/${usuarioLogueado.id}`);
             const stock = await resS.json();
+            
+            const tbodyV = document.querySelector('#tabla-inventario-vendedor tbody');
+            tbodyV.innerHTML = '';
             const selectV = document.getElementById('venta-lote');
             selectV.innerHTML = '';
+            
             stock.forEach(s => {
+                tbodyV.innerHTML += `<tr>
+                    <td>${s.numero_pedido}</td>
+                    <td>${s.modelo}</td>
+                    <td>Recibido</td>
+                    <td><b>${s.piezas_vendedor} pz</b></td>
+                </tr>`;
+                
                 if(s.piezas_vendedor > 0) {
-                    selectV.innerHTML += `<option value="${s.id || s.detalle_id}">${s.numero_pedido} - ${s.modelo} (${s.piezas_vendedor} pz disp.)</option>`;
+                    selectV.innerHTML += `<option value="${s.detalle_id}">${s.numero_pedido} - ${s.modelo} (${s.piezas_vendedor} pz disp.)</option>`;
                 }
             });
         }
@@ -470,7 +502,7 @@
             });
             
             if(res.ok) {
-                alert('¡Venta registrada! Stock descontado de tu perfil.');
+                alert('¡Venta registrada! Stock descontado del modelo correcto.');
                 document.getElementById('venta-cantidad').value = '';
                 document.getElementById('venta-precio').value = '';
                 cargarDatosVendedor();
